@@ -1,0 +1,2600 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "description": "## Rich-text fields\n\nDescriptions (task, project, label, team, saved filter) and task comments are stored as HTML. Add `?format=markdown` to read and write them as GFM Markdown instead; on write it is converted to HTML and `@mentions` resolved to existing users. On `PATCH`, send the `X-Vikunja-Format: markdown` header instead (merge-patch drops query parameters). CalDAV always exchanges task descriptions as Markdown.\n\nWriting is lossy: Markdown can't express every HTML construct (e.g. underline), so a field you send as Markdown is stored as its converted HTML \u2014 formatting Markdown can't represent is dropped. Omit a field, or use `format=html`, to leave it untouched (note a full `PUT` and `PATCH` round-trip the whole resource, so send `format=html` unless you actually edited the rich-text fields). Unknown `@mentions` stay as plain text.",
+    "title": "Vikunja API",
+    "version": "v2.6.0"
+  },
+  "paths": {
+    "/projects/{project}/tasks/by-index/{index}": {
+      "get": {
+        "description": "Returns a single task addressed by its per-project index. The {project} segment accepts either a numeric project id or a textual project identifier (e.g. \"PROJ\"); a value made solely of digits is always treated as an id. Embed extra, more expensive data in each task. Repeatable. One of: subtasks, buckets, reactions, comments, comment_count, time_entries_count, is_unread. Expanding can return more tasks than the page limit (subtasks) and inflate the response.",
+        "operationId": "tasks-read-by-index",
+        "parameters": [
+          {
+            "description": "A numeric project id or a textual project identifier (e.g. \"PROJ\").",
+            "in": "path",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "description": "A numeric project id or a textual project identifier (e.g. \"PROJ\").",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The per-project task index.",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "description": "The per-project task index.",
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Embed extra data per task. Repeatable.",
+            "explode": true,
+            "in": "query",
+            "name": "expand",
+            "schema": {
+              "description": "Embed extra data per task. Repeatable.",
+              "items": {
+                "enum": [
+                  "subtasks",
+                  "buckets",
+                  "reactions",
+                  "comments",
+                  "comment_count",
+                  "time_entries_count",
+                  "is_unread"
+                ],
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "How rich-text fields are exchanged. See the API description.",
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "description": "How rich-text fields are exchanged. See the API description.",
+              "enum": [
+                "html",
+                "markdown"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource matches one of the passed values.",
+            "in": "header",
+            "name": "If-Match",
+            "schema": {
+              "description": "Succeeds if the server's resource matches one of the passed values.",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.",
+            "in": "header",
+            "name": "If-None-Match",
+            "schema": {
+              "description": "Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource date is more recent than the passed date.",
+            "in": "header",
+            "name": "If-Modified-Since",
+            "schema": {
+              "description": "Succeeds if the server's resource date is more recent than the passed date.",
+              "format": "date-time-http",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource date is older or the same as the passed date.",
+            "in": "header",
+            "name": "If-Unmodified-Since",
+            "schema": {
+              "description": "Succeeds if the server's resource date is older or the same as the passed date.",
+              "format": "date-time-http",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskReadOneBody"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a task by its project index",
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/tasks/{projecttask}": {
+      "delete": {
+        "description": "Deletes a task. Requires write access to its project.",
+        "operationId": "tasks-delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projecttask",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete a task",
+        "tags": [
+          "tasks"
+        ]
+      },
+      "get": {
+        "description": "Returns a single task by its numeric id. Sends an ETag; pass it as If-None-Match on a later read to get a 304 Not Modified. Embed extra, more expensive data in each task. Repeatable. One of: subtasks, buckets, reactions, comments, comment_count, time_entries_count, is_unread. Expanding can return more tasks than the page limit (subtasks) and inflate the response.",
+        "operationId": "tasks-read",
+        "parameters": [
+          {
+            "description": "The numeric id of the task.",
+            "in": "path",
+            "name": "projecttask",
+            "required": true,
+            "schema": {
+              "description": "The numeric id of the task.",
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Embed extra data per task. Repeatable.",
+            "explode": true,
+            "in": "query",
+            "name": "expand",
+            "schema": {
+              "description": "Embed extra data per task. Repeatable.",
+              "items": {
+                "enum": [
+                  "subtasks",
+                  "buckets",
+                  "reactions",
+                  "comments",
+                  "comment_count",
+                  "time_entries_count",
+                  "is_unread"
+                ],
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "How rich-text fields are exchanged. See the API description.",
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "description": "How rich-text fields are exchanged. See the API description.",
+              "enum": [
+                "html",
+                "markdown"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource matches one of the passed values.",
+            "in": "header",
+            "name": "If-Match",
+            "schema": {
+              "description": "Succeeds if the server's resource matches one of the passed values.",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.",
+            "in": "header",
+            "name": "If-None-Match",
+            "schema": {
+              "description": "Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource date is more recent than the passed date.",
+            "in": "header",
+            "name": "If-Modified-Since",
+            "schema": {
+              "description": "Succeeds if the server's resource date is more recent than the passed date.",
+              "format": "date-time-http",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource date is older or the same as the passed date.",
+            "in": "header",
+            "name": "If-Unmodified-Since",
+            "schema": {
+              "description": "Succeeds if the server's resource date is older or the same as the passed date.",
+              "format": "date-time-http",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskReadOneBody"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a task",
+        "tags": [
+          "tasks"
+        ]
+      },
+      "patch": {
+        "description": "Partial update operation supporting both JSON Merge Patch & JSON Patch updates.",
+        "operationId": "patch-tasks-read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projecttask",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/JsonPatchOp"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              }
+            },
+            "application/merge-patch+json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "$schema": {
+                    "description": "A URL to the JSON Schema for this object.",
+                    "examples": [
+                      "/api/v2/schemas/TaskReadOneBody.json"
+                    ],
+                    "format": "uri",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "assignees": {
+                    "description": "The users assigned to this task. Read-only here; use the task-assignee endpoints to change assignments.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "attachments": {
+                    "description": "The task's attachments. Read-only here; use the attachment endpoints to add or remove them.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "bucket_id": {
+                    "description": "The bucket the task is in. Only populated when the task is accessed via a view with buckets. To move a task between buckets, the new bucket must be in the same view as the old one.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "buckets": {
+                    "description": "The task's buckets across all views. Only present when requested via the buckets expand option.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "comment_count": {
+                    "description": "The number of comments on this task. Only present when requested via the comment_count expand option.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "comments": {
+                    "description": "The task's first 50 comments. Only present when requested via the comments expand option.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "cover_image_attachment_id": {
+                    "description": "The id of the attachment used as this task's cover image, or 0 for none.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "created": {
+                    "description": "When this task was created. Set by the server; ignored on write.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "created_by": {
+                    "description": "The user who created this task. Set by the server.",
+                    "readOnly": true
+                  },
+                  "deleted_at": {
+                    "description": "When this task was soft-deleted. Soft-deleted tasks are kept for 30 days before they are removed permanently.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "done": {
+                    "type": "boolean"
+                  },
+                  "done_at": {
+                    "description": "When the task was marked as done. Set by the server; ignored on write.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "due_date": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "end_date": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "hex_color": {
+                    "description": "The task color as a hex string without the leading '#'.",
+                    "maxLength": 7,
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "The unique, numeric id of this task.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "identifier": {
+                    "description": "The textual task identifier, derived from the project identifier and the task index (e.g. \"PROJ-12\").",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "index": {
+                    "description": "The per-project task index, assigned by the server.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "is_favorite": {
+                    "description": "Whether the requesting user has favorited this task. Per-user, so it differs between callers.",
+                    "type": "boolean"
+                  },
+                  "is_unread": {
+                    "description": "Whether the task is unread for the requesting user. Only present when requested via the is_unread expand option.",
+                    "readOnly": true,
+                    "type": "boolean"
+                  },
+                  "labels": {
+                    "description": "The labels on this task. Read-only here; use the label-task endpoints to add or remove labels.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "max_permission": {
+                    "description": "The maximum permission the requesting user has on this task (0=read, 1=read/write, 2=admin).",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "percent_done": {
+                    "description": "How far the task is from done, between 0 and 1.",
+                    "format": "double",
+                    "type": "number"
+                  },
+                  "position": {
+                    "description": "The task's position, saved per view. Only non-zero when the task is fetched through a view endpoint; use the task-position endpoint to change it.",
+                    "format": "double",
+                    "readOnly": true,
+                    "type": "number"
+                  },
+                  "priority": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "project_id": {
+                    "description": "The id of the project this task belongs to. On create it is taken from the URL; on update, setting it to a different project moves the task (requires write access to the target project).",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "reactions": {
+                    "additionalProperties": {
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "description": "Reactions on this task. Only present when requested via the reactions expand option.",
+                    "readOnly": true,
+                    "type": "object"
+                  },
+                  "related_tasks": {
+                    "additionalProperties": {
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "description": "Related tasks grouped by relation kind. Read-only here; use the task-relation endpoints to change relations.",
+                    "readOnly": true,
+                    "type": "object"
+                  },
+                  "reminders": {
+                    "items": {},
+                    "type": "array"
+                  },
+                  "repeat_after": {
+                    "description": "The interval in seconds this task repeats. When set, marking the task done re-opens it and bumps its reminders and due date by this amount.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "repeat_mode": {
+                    "description": "How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "start_date": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "subscription": {
+                    "description": "The requesting user's subscription to this task. Read-only here; use the subscription endpoints to change it. Only present when reading a single task.",
+                    "readOnly": true
+                  },
+                  "time_entries_count": {
+                    "description": "The number of time entries on this task. Only present when requested via the time_entries_count expand option.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "title": {
+                    "description": "The task title. This is what you'll see in the project.",
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "updated": {
+                    "description": "When this task was last updated. Set by the server; ignored on write.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "application/merge-patch+shorthand": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "$schema": {
+                    "description": "A URL to the JSON Schema for this object.",
+                    "examples": [
+                      "/api/v2/schemas/TaskReadOneBody.json"
+                    ],
+                    "format": "uri",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "assignees": {
+                    "description": "The users assigned to this task. Read-only here; use the task-assignee endpoints to change assignments.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "attachments": {
+                    "description": "The task's attachments. Read-only here; use the attachment endpoints to add or remove them.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "bucket_id": {
+                    "description": "The bucket the task is in. Only populated when the task is accessed via a view with buckets. To move a task between buckets, the new bucket must be in the same view as the old one.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "buckets": {
+                    "description": "The task's buckets across all views. Only present when requested via the buckets expand option.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "comment_count": {
+                    "description": "The number of comments on this task. Only present when requested via the comment_count expand option.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "comments": {
+                    "description": "The task's first 50 comments. Only present when requested via the comments expand option.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "cover_image_attachment_id": {
+                    "description": "The id of the attachment used as this task's cover image, or 0 for none.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "created": {
+                    "description": "When this task was created. Set by the server; ignored on write.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "created_by": {
+                    "description": "The user who created this task. Set by the server.",
+                    "readOnly": true
+                  },
+                  "deleted_at": {
+                    "description": "When this task was soft-deleted. Soft-deleted tasks are kept for 30 days before they are removed permanently.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "done": {
+                    "type": "boolean"
+                  },
+                  "done_at": {
+                    "description": "When the task was marked as done. Set by the server; ignored on write.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "due_date": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "end_date": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "hex_color": {
+                    "description": "The task color as a hex string without the leading '#'.",
+                    "maxLength": 7,
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "The unique, numeric id of this task.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "identifier": {
+                    "description": "The textual task identifier, derived from the project identifier and the task index (e.g. \"PROJ-12\").",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "index": {
+                    "description": "The per-project task index, assigned by the server.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "is_favorite": {
+                    "description": "Whether the requesting user has favorited this task. Per-user, so it differs between callers.",
+                    "type": "boolean"
+                  },
+                  "is_unread": {
+                    "description": "Whether the task is unread for the requesting user. Only present when requested via the is_unread expand option.",
+                    "readOnly": true,
+                    "type": "boolean"
+                  },
+                  "labels": {
+                    "description": "The labels on this task. Read-only here; use the label-task endpoints to add or remove labels.",
+                    "items": {},
+                    "readOnly": true,
+                    "type": "array"
+                  },
+                  "max_permission": {
+                    "description": "The maximum permission the requesting user has on this task (0=read, 1=read/write, 2=admin).",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "percent_done": {
+                    "description": "How far the task is from done, between 0 and 1.",
+                    "format": "double",
+                    "type": "number"
+                  },
+                  "position": {
+                    "description": "The task's position, saved per view. Only non-zero when the task is fetched through a view endpoint; use the task-position endpoint to change it.",
+                    "format": "double",
+                    "readOnly": true,
+                    "type": "number"
+                  },
+                  "priority": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "project_id": {
+                    "description": "The id of the project this task belongs to. On create it is taken from the URL; on update, setting it to a different project moves the task (requires write access to the target project).",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "reactions": {
+                    "additionalProperties": {
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "description": "Reactions on this task. Only present when requested via the reactions expand option.",
+                    "readOnly": true,
+                    "type": "object"
+                  },
+                  "related_tasks": {
+                    "additionalProperties": {
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "description": "Related tasks grouped by relation kind. Read-only here; use the task-relation endpoints to change relations.",
+                    "readOnly": true,
+                    "type": "object"
+                  },
+                  "reminders": {
+                    "items": {},
+                    "type": "array"
+                  },
+                  "repeat_after": {
+                    "description": "The interval in seconds this task repeats. When set, marking the task done re-opens it and bumps its reminders and due date by this amount.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "repeat_mode": {
+                    "description": "How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date.",
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "start_date": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "subscription": {
+                    "description": "The requesting user's subscription to this task. Read-only here; use the subscription endpoints to change it. Only present when reading a single task.",
+                    "readOnly": true
+                  },
+                  "time_entries_count": {
+                    "description": "The number of time entries on this task. Only present when requested via the time_entries_count expand option.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "title": {
+                    "description": "The task title. This is what you'll see in the project.",
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "updated": {
+                    "description": "When this task was last updated. Set by the server; ignored on write.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update a task (partial)",
+        "tags": [
+          "tasks"
+        ]
+      },
+      "put": {
+        "description": "Replaces all of a task's fields; requires write access. Setting project_id to a different project moves the task and also requires write access to the target project. Use PATCH for a partial update.",
+        "operationId": "tasks-update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projecttask",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "How rich-text fields are exchanged. See the API description.",
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "description": "How rich-text fields are exchanged. See the API description.",
+              "enum": [
+                "html",
+                "markdown"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskReadOneBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update a task",
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/tasks/{task}/comments": {
+      "get": {
+        "description": "Returns the comments of the given task, paginated. Requires read access to the task. Pass order_by=desc to sort newest-first (default is oldest-first).",
+        "operationId": "task-comments-list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Sort order by creation time: 'asc' (oldest first, default) or 'desc' (newest first).",
+            "explode": false,
+            "in": "query",
+            "name": "order_by",
+            "schema": {
+              "default": "asc",
+              "description": "Sort order by creation time: 'asc' (oldest first, default) or 'desc' (newest first).",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "How rich-text fields are exchanged. See the API description.",
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "description": "How rich-text fields are exchanged. See the API description.",
+              "enum": [
+                "html",
+                "markdown"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based page number.",
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "description": "1-based page number.",
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page (max 1000).",
+            "explode": false,
+            "in": "query",
+            "name": "per_page",
+            "schema": {
+              "default": 50,
+              "description": "Items per page (max 1000).",
+              "format": "int64",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Search query; filters the list to items matching this string.",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search query; filters the list to items matching this string.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedTaskComment"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List the comments of a task",
+        "tags": [
+          "task_comments"
+        ]
+      },
+      "post": {
+        "description": "Adds a comment to the given task. The parent task is taken from the URL, not the body, and the author is the authenticated user. Requires write access to the task.",
+        "operationId": "task-comments-create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "How rich-text fields are exchanged. See the API description.",
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "description": "How rich-text fields are exchanged. See the API description.",
+              "enum": [
+                "html",
+                "markdown"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskComment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskComment"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create a comment on a task",
+        "tags": [
+          "task_comments"
+        ]
+      }
+    },
+    "/tasks/{task}/comments/{commentid}": {
+      "delete": {
+        "description": "Deletes a comment of a task. The comment must belong to the task in the path, and only its author may delete it.",
+        "operationId": "task-comments-delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commentid",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete a comment of a task",
+        "tags": [
+          "task_comments"
+        ]
+      },
+      "get": {
+        "description": "Returns one comment of a task. The comment must belong to the task in the path. Sends an ETag; pass it as If-None-Match on a later read to get a 304 Not Modified.",
+        "operationId": "task-comments-read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commentid",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "How rich-text fields are exchanged. See the API description.",
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "description": "How rich-text fields are exchanged. See the API description.",
+              "enum": [
+                "html",
+                "markdown"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource matches one of the passed values.",
+            "in": "header",
+            "name": "If-Match",
+            "schema": {
+              "description": "Succeeds if the server's resource matches one of the passed values.",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.",
+            "in": "header",
+            "name": "If-None-Match",
+            "schema": {
+              "description": "Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource date is more recent than the passed date.",
+            "in": "header",
+            "name": "If-Modified-Since",
+            "schema": {
+              "description": "Succeeds if the server's resource date is more recent than the passed date.",
+              "format": "date-time-http",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Succeeds if the server's resource date is older or the same as the passed date.",
+            "in": "header",
+            "name": "If-Unmodified-Since",
+            "schema": {
+              "description": "Succeeds if the server's resource date is older or the same as the passed date.",
+              "format": "date-time-http",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCommentReadBody"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a single comment of a task",
+        "tags": [
+          "task_comments"
+        ]
+      },
+      "patch": {
+        "description": "Partial update operation supporting both JSON Merge Patch & JSON Patch updates.",
+        "operationId": "patch-task-comments-read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commentid",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/JsonPatchOp"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              }
+            },
+            "application/merge-patch+json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "$schema": {
+                    "description": "A URL to the JSON Schema for this object.",
+                    "examples": [
+                      "/api/v2/schemas/TaskCommentReadBody.json"
+                    ],
+                    "format": "uri",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "author": {
+                    "description": "The user who wrote the comment. Set from the authenticated user on create; ignored on write.",
+                    "readOnly": true
+                  },
+                  "comment": {
+                    "description": "The comment text. May contain HTML; mentions are parsed and notify the mentioned users.",
+                    "type": "string"
+                  },
+                  "created": {
+                    "description": "A timestamp when this comment was created. You cannot change this value.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "The unique, numeric id of this comment.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "max_permission": {
+                    "description": "The maximum permission the requesting user has on this comment's parent task (0=read, 1=read/write, 2=admin). Editing or deleting a comment also requires being its author, so this can over-state what the user may do to the comment.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "reactions": {
+                    "additionalProperties": {
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "description": "The reactions on this comment, keyed by reaction value. Managed through the reactions endpoints, not by writing here.",
+                    "readOnly": true,
+                    "type": "object"
+                  },
+                  "updated": {
+                    "description": "A timestamp when this comment was last updated. You cannot change this value.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "application/merge-patch+shorthand": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "$schema": {
+                    "description": "A URL to the JSON Schema for this object.",
+                    "examples": [
+                      "/api/v2/schemas/TaskCommentReadBody.json"
+                    ],
+                    "format": "uri",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "author": {
+                    "description": "The user who wrote the comment. Set from the authenticated user on create; ignored on write.",
+                    "readOnly": true
+                  },
+                  "comment": {
+                    "description": "The comment text. May contain HTML; mentions are parsed and notify the mentioned users.",
+                    "type": "string"
+                  },
+                  "created": {
+                    "description": "A timestamp when this comment was created. You cannot change this value.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "The unique, numeric id of this comment.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "max_permission": {
+                    "description": "The maximum permission the requesting user has on this comment's parent task (0=read, 1=read/write, 2=admin). Editing or deleting a comment also requires being its author, so this can over-state what the user may do to the comment.",
+                    "format": "int64",
+                    "readOnly": true,
+                    "type": "integer"
+                  },
+                  "reactions": {
+                    "additionalProperties": {
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "description": "The reactions on this comment, keyed by reaction value. Managed through the reactions endpoints, not by writing here.",
+                    "readOnly": true,
+                    "type": "object"
+                  },
+                  "updated": {
+                    "description": "A timestamp when this comment was last updated. You cannot change this value.",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskComment"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update a comment of a task (partial)",
+        "tags": [
+          "task_comments"
+        ]
+      },
+      "put": {
+        "description": "Replaces a comment's text. The comment must belong to the task in the path, and only its author may update it. Use PATCH for a partial update.",
+        "operationId": "task-comments-update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "commentid",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "How rich-text fields are exchanged. See the API description.",
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "description": "How rich-text fields are exchanged. See the API description.",
+              "enum": [
+                "html",
+                "markdown"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCommentReadBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskComment"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VikunjaErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update a comment of a task",
+        "tags": [
+          "task_comments"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Bucket": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/Bucket.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "created": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/User"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "limit": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "position": {
+            "format": "double",
+            "type": "number"
+          },
+          "project_view_id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "updated": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
+        },
+        "type": "object"
+      },
+      "File": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "description": "A timestamp when this file was uploaded.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique, numeric id of this file.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "mime": {
+            "description": "The detected mime type of the file.",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "The original name of the uploaded file.",
+            "readOnly": true,
+            "type": "string"
+          },
+          "size": {
+            "description": "The size of the file in bytes.",
+            "format": "int64",
+            "minimum": 0,
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "JsonPatchOp": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "description": "JSON Pointer for the source of a move or copy",
+            "type": "string"
+          },
+          "op": {
+            "description": "Operation name",
+            "enum": [
+              "add",
+              "remove",
+              "replace",
+              "move",
+              "copy",
+              "test"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "description": "JSON Pointer to the field being operated on, or the destination of a move/copy operation",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value to set"
+          }
+        },
+        "type": "object"
+      },
+      "Label": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/Label.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created": {
+            "description": "A timestamp when this label was created. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/User",
+            "description": "The user who created this label.",
+            "readOnly": true
+          },
+          "description": {
+            "description": "The label description.",
+            "type": "string"
+          },
+          "hex_color": {
+            "description": "The color this label has in hex format.",
+            "maxLength": 7,
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique, numeric id of this label.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "title": {
+            "description": "The title of the label. You'll see this one on tasks associated with it.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updated": {
+            "description": "A timestamp when this label was last updated. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PaginatedTaskComment": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/PaginatedTaskComment.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskComment"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "per_page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total_pages": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Subscription": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/Subscription.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created": {
+            "description": "A timestamp when this subscription was created. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "entity": {
+            "description": "The kind of entity this subscription is for. Either project or task; derived server-side from the request path.",
+            "enum": [
+              "project",
+              "task"
+            ],
+            "readOnly": true,
+            "type": "string"
+          },
+          "entity_id": {
+            "description": "The numeric id of the subscribed entity; taken from the request path.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "id": {
+            "description": "The numeric id of the subscription.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Task": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/Task.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "assignees": {
+            "description": "The users assigned to this task. Read-only here; use the task-assignee endpoints to change assignments.",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "attachments": {
+            "description": "The task's attachments. Read-only here; use the attachment endpoints to add or remove them.",
+            "items": {
+              "$ref": "#/components/schemas/TaskAttachment"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "bucket_id": {
+            "description": "The bucket the task is in. Only populated when the task is accessed via a view with buckets. To move a task between buckets, the new bucket must be in the same view as the old one.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "buckets": {
+            "description": "The task's buckets across all views. Only present when requested via the buckets expand option.",
+            "items": {
+              "$ref": "#/components/schemas/Bucket"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "comment_count": {
+            "description": "The number of comments on this task. Only present when requested via the comment_count expand option.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "comments": {
+            "description": "The task's first 50 comments. Only present when requested via the comments expand option.",
+            "items": {
+              "$ref": "#/components/schemas/TaskComment"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "cover_image_attachment_id": {
+            "description": "The id of the attachment used as this task's cover image, or 0 for none.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "created": {
+            "description": "When this task was created. Set by the server; ignored on write.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/User",
+            "description": "The user who created this task. Set by the server.",
+            "readOnly": true
+          },
+          "deleted_at": {
+            "description": "When this task was soft-deleted. Soft-deleted tasks are kept for 30 days before they are removed permanently.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "done_at": {
+            "description": "When the task was marked as done. Set by the server; ignored on write.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hex_color": {
+            "description": "The task color as a hex string without the leading '#'.",
+            "maxLength": 7,
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique, numeric id of this task.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "identifier": {
+            "description": "The textual task identifier, derived from the project identifier and the task index (e.g. \"PROJ-12\").",
+            "readOnly": true,
+            "type": "string"
+          },
+          "index": {
+            "description": "The per-project task index, assigned by the server.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "is_favorite": {
+            "description": "Whether the requesting user has favorited this task. Per-user, so it differs between callers.",
+            "type": "boolean"
+          },
+          "is_unread": {
+            "description": "Whether the task is unread for the requesting user. Only present when requested via the is_unread expand option.",
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "labels": {
+            "description": "The labels on this task. Read-only here; use the label-task endpoints to add or remove labels.",
+            "items": {
+              "$ref": "#/components/schemas/Label"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "percent_done": {
+            "description": "How far the task is from done, between 0 and 1.",
+            "format": "double",
+            "type": "number"
+          },
+          "position": {
+            "description": "The task's position, saved per view. Only non-zero when the task is fetched through a view endpoint; use the task-position endpoint to change it.",
+            "format": "double",
+            "readOnly": true,
+            "type": "number"
+          },
+          "priority": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "project_id": {
+            "description": "The id of the project this task belongs to. On create it is taken from the URL; on update, setting it to a different project moves the task (requires write access to the target project).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "reactions": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/User"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "description": "Reactions on this task. Only present when requested via the reactions expand option.",
+            "readOnly": true,
+            "type": "object"
+          },
+          "related_tasks": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/Task"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "description": "Related tasks grouped by relation kind. Read-only here; use the task-relation endpoints to change relations.",
+            "readOnly": true,
+            "type": "object"
+          },
+          "reminders": {
+            "items": {
+              "$ref": "#/components/schemas/TaskReminder"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "repeat_after": {
+            "description": "The interval in seconds this task repeats. When set, marking the task done re-opens it and bumps its reminders and due date by this amount.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "repeat_mode": {
+            "description": "How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "start_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription",
+            "description": "The requesting user's subscription to this task. Read-only here; use the subscription endpoints to change it. Only present when reading a single task.",
+            "readOnly": true
+          },
+          "time_entries_count": {
+            "description": "The number of time entries on this task. Only present when requested via the time_entries_count expand option.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "title": {
+            "description": "The task title. This is what you'll see in the project.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "updated": {
+            "description": "When this task was last updated. Set by the server; ignored on write.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TaskAttachment": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "description": "A timestamp when this attachment was uploaded. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/User",
+            "description": "The user who uploaded this attachment.",
+            "readOnly": true
+          },
+          "file": {
+            "$ref": "#/components/schemas/File",
+            "description": "Metadata of the uploaded file (name, mime type, size). The bytes are fetched from the download endpoint, not this field.",
+            "readOnly": true
+          },
+          "id": {
+            "description": "The unique, numeric id of this attachment.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "task_id": {
+            "description": "The id of the task this attachment belongs to. Taken from the URL, not the body.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TaskComment": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/TaskComment.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/User",
+            "description": "The user who wrote the comment. Set from the authenticated user on create; ignored on write.",
+            "readOnly": true
+          },
+          "comment": {
+            "description": "The comment text. May contain HTML; mentions are parsed and notify the mentioned users.",
+            "type": "string"
+          },
+          "created": {
+            "description": "A timestamp when this comment was created. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique, numeric id of this comment.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "reactions": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/User"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "description": "The reactions on this comment, keyed by reaction value. Managed through the reactions endpoints, not by writing here.",
+            "readOnly": true,
+            "type": "object"
+          },
+          "updated": {
+            "description": "A timestamp when this comment was last updated. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TaskCommentReadBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/TaskCommentReadBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/User",
+            "description": "The user who wrote the comment. Set from the authenticated user on create; ignored on write.",
+            "readOnly": true
+          },
+          "comment": {
+            "description": "The comment text. May contain HTML; mentions are parsed and notify the mentioned users.",
+            "type": "string"
+          },
+          "created": {
+            "description": "A timestamp when this comment was created. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique, numeric id of this comment.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "max_permission": {
+            "description": "The maximum permission the requesting user has on this comment's parent task (0=read, 1=read/write, 2=admin). Editing or deleting a comment also requires being its author, so this can over-state what the user may do to the comment.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "reactions": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/User"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "description": "The reactions on this comment, keyed by reaction value. Managed through the reactions endpoints, not by writing here.",
+            "readOnly": true,
+            "type": "object"
+          },
+          "updated": {
+            "description": "A timestamp when this comment was last updated. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TaskReadOneBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/TaskReadOneBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "assignees": {
+            "description": "The users assigned to this task. Read-only here; use the task-assignee endpoints to change assignments.",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "attachments": {
+            "description": "The task's attachments. Read-only here; use the attachment endpoints to add or remove them.",
+            "items": {
+              "$ref": "#/components/schemas/TaskAttachment"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "bucket_id": {
+            "description": "The bucket the task is in. Only populated when the task is accessed via a view with buckets. To move a task between buckets, the new bucket must be in the same view as the old one.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "buckets": {
+            "description": "The task's buckets across all views. Only present when requested via the buckets expand option.",
+            "items": {
+              "$ref": "#/components/schemas/Bucket"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "comment_count": {
+            "description": "The number of comments on this task. Only present when requested via the comment_count expand option.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "comments": {
+            "description": "The task's first 50 comments. Only present when requested via the comments expand option.",
+            "items": {
+              "$ref": "#/components/schemas/TaskComment"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "cover_image_attachment_id": {
+            "description": "The id of the attachment used as this task's cover image, or 0 for none.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "created": {
+            "description": "When this task was created. Set by the server; ignored on write.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/User",
+            "description": "The user who created this task. Set by the server.",
+            "readOnly": true
+          },
+          "deleted_at": {
+            "description": "When this task was soft-deleted. Soft-deleted tasks are kept for 30 days before they are removed permanently.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "done_at": {
+            "description": "When the task was marked as done. Set by the server; ignored on write.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hex_color": {
+            "description": "The task color as a hex string without the leading '#'.",
+            "maxLength": 7,
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique, numeric id of this task.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "identifier": {
+            "description": "The textual task identifier, derived from the project identifier and the task index (e.g. \"PROJ-12\").",
+            "readOnly": true,
+            "type": "string"
+          },
+          "index": {
+            "description": "The per-project task index, assigned by the server.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "is_favorite": {
+            "description": "Whether the requesting user has favorited this task. Per-user, so it differs between callers.",
+            "type": "boolean"
+          },
+          "is_unread": {
+            "description": "Whether the task is unread for the requesting user. Only present when requested via the is_unread expand option.",
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "labels": {
+            "description": "The labels on this task. Read-only here; use the label-task endpoints to add or remove labels.",
+            "items": {
+              "$ref": "#/components/schemas/Label"
+            },
+            "readOnly": true,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "max_permission": {
+            "description": "The maximum permission the requesting user has on this task (0=read, 1=read/write, 2=admin).",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "percent_done": {
+            "description": "How far the task is from done, between 0 and 1.",
+            "format": "double",
+            "type": "number"
+          },
+          "position": {
+            "description": "The task's position, saved per view. Only non-zero when the task is fetched through a view endpoint; use the task-position endpoint to change it.",
+            "format": "double",
+            "readOnly": true,
+            "type": "number"
+          },
+          "priority": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "project_id": {
+            "description": "The id of the project this task belongs to. On create it is taken from the URL; on update, setting it to a different project moves the task (requires write access to the target project).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "reactions": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/User"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "description": "Reactions on this task. Only present when requested via the reactions expand option.",
+            "readOnly": true,
+            "type": "object"
+          },
+          "related_tasks": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/Task"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "description": "Related tasks grouped by relation kind. Read-only here; use the task-relation endpoints to change relations.",
+            "readOnly": true,
+            "type": "object"
+          },
+          "reminders": {
+            "items": {
+              "$ref": "#/components/schemas/TaskReminder"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "repeat_after": {
+            "description": "The interval in seconds this task repeats. When set, marking the task done re-opens it and bumps its reminders and due date by this amount.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "repeat_mode": {
+            "description": "How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "start_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription",
+            "description": "The requesting user's subscription to this task. Read-only here; use the subscription endpoints to change it. Only present when reading a single task.",
+            "readOnly": true
+          },
+          "time_entries_count": {
+            "description": "The number of time entries on this task. Only present when requested via the time_entries_count expand option.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "title": {
+            "description": "The task title. This is what you'll see in the project.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "updated": {
+            "description": "When this task was last updated. Set by the server; ignored on write.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TaskReminder": {
+        "additionalProperties": false,
+        "properties": {
+          "relative_period": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "relative_to": {
+            "type": "string"
+          },
+          "reminder": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "User": {
+        "additionalProperties": false,
+        "properties": {
+          "bot_owner_id": {
+            "description": "The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "created": {
+            "description": "A timestamp when this user was created. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "description": "The user's email address. Always empty for bot users.",
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "description": "The unique, numeric id of this user.",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "name": {
+            "description": "The full name of the user.",
+            "type": "string"
+          },
+          "updated": {
+            "description": "A timestamp when this user was last updated. You cannot change this value.",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "username": {
+            "description": "The username of the user. Is always unique. For bot users it must start with the 'bot-' prefix.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "VikunjaErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v2/schemas/VikunjaErrorModel.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "description": "Vikunja numeric error code; see https://vikunja.io/docs/errors/",
+            "format": "int64",
+            "readOnly": true,
+            "type": "integer"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "i18n_params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Dynamic values referenced by the error message, keyed by translation placeholder name, for client-side localisation.",
+            "readOnly": true,
+            "type": "object"
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "APITokenAuth": {
+        "description": "Vikunja API token (tk_ prefix) with scoped permissions. Created via /api/v1/tokens.",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "BasicAuth": {
+        "description": "HTTP Basic auth used by the notifications Atom feed: the username is the token owner and the password is a feeds-scoped Vikunja API token (tk_ prefix).",
+        "scheme": "basic",
+        "type": "http"
+      },
+      "JWTKeyAuth": {
+        "bearerFormat": "JWT",
+        "description": "User session JWT issued via /api/v1/login.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  }
+}

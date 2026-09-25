@@ -1,0 +1,25 @@
+services:
+  vikunja-github:
+    build: .
+    image: vikunja-github:local
+    restart: unless-stopped
+    environment:
+      VIKUNJA_BASE_URL: ${VIKUNJA_BASE_URL:?Set the Vikunja instance URL}
+      VIKUNJA_TOKEN: ${VIKUNJA_TOKEN:?Set a scoped Vikunja API token}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:?Set a webhook secret}
+      DATABASE_PATH: /data/vikunja-github.db
+      ALLOWED_REPOSITORIES: ${ALLOWED_REPOSITORIES:-}
+      ALLOWED_PROJECT_IDENTIFIERS: ${ALLOWED_PROJECT_IDENTIFIERS:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - vikunja-github-data:/data
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+
+volumes:
+  vikunja-github-data:
