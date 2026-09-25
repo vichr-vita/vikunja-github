@@ -1,5 +1,9 @@
 # vikunja-github
 
+[![CI](https://github.com/vichr-vita/vikunja-github/actions/workflows/ci.yml/badge.svg?branch=dev&event=push)](https://github.com/vichr-vita/vikunja-github/actions/workflows/ci.yml)
+[![Release](https://github.com/vichr-vita/vikunja-github/actions/workflows/release.yml/badge.svg?branch=main&event=push)](https://github.com/vichr-vita/vikunja-github/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/vichr-vita/vikunja-github)](https://github.com/vichr-vita/vikunja-github/releases/latest)
+
 A self-hosted Go service that links GitHub branches, commits, and pull requests to Vikunja tasks. GitHub repository webhooks feed a durable SQLite worker. The worker resolves references such as `LEDGER-42` through Vikunja API v2 and maintains GitHub activity comments on the resulting numeric task IDs.
 
 Vikunja needs no modifications. The service does not poll GitHub, synchronize issues, complete tasks, or create branches or pull requests.
